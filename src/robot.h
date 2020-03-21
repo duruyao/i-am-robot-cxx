@@ -58,6 +58,43 @@ typedef struct ROBOT Bot;
 
 /******************************************************************************/
 /*                                                                            */
+/* struct defination                                                          */
+/*                                                                            */
+/******************************************************************************/
+
+
+struct STEP {
+    uint8_t s_nb;
+    char  **str;
+};
+
+struct ACTION {
+    char        cmd;
+    uint8_t     st_nb;
+    Step       *step;
+    const char *folder;
+};
+
+struct POSITION {
+    int x;
+    int y;
+};
+
+struct ROBOT {
+    uint8_t id;
+    uint8_t width;
+    uint8_t height;
+    uint8_t act_nb;
+    Act *action;
+    Pos  pos;
+
+    int (*init)(Bot *, uint8_t, uint8_t, uint8_t, uint8_t, Act *, Pos);
+    int (*ctrl)(Bot *);
+};
+
+
+/******************************************************************************/
+/*                                                                            */
 /* func declaration                                                           */
 /*                                                                            */
 /******************************************************************************/
@@ -70,10 +107,9 @@ extern  int delete_bot      (Bot **);
 extern  int bot_init        (Bot *, uint8_t, uint8_t,
                                     uint8_t, uint8_t, Act *, Pos);
 
-extern  int bot_ctrl        (Bot *, char *, char *,
-                                    char *, char *, char *, char *);
+extern  int bot_ctrl        (Bot *);
 
-extern  int act_load        (Act *, uint8_t, char *, uint8_t *, char **);
+extern  int act_load        (Act *, uint8_t, char *, uint8_t *, const char **);
 
 extern  int act_unload      (Act *, uint8_t);
 
