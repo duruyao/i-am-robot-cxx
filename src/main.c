@@ -18,12 +18,12 @@
 
 Act         act[ACT_NB];
 char        cmd[ACT_NB]     = {'\0', 'a', 'd'};
-uint8_t     step_nb[ACT_NB] = {1, 3, 3};
+uint8_t     step_nb[ACT_NB] = {1, 6, 6};
 const char *folder[ACT_NB];
 
 int main(int argc, char **argv) {
     int  ret;
-    Pos  pos = {0, 0};
+    Pos  pos = {8, 4};
     Bot *bot = NULL;
 
     folder[0] = "./act/stand/";

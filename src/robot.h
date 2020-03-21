@@ -18,12 +18,17 @@ extern "C" {
 #include <math.h>
 #include <stdio.h>
 #include <float.h>
+#include <fcntl.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+
 #include <unistd.h>
 #include <termios.h>
+#include <pthread.h>
 #include <inttypes.h>
+#include <semaphore.h>
+#include <sys/ioctl.h>
 
 
 /**********************************************************/
@@ -32,9 +37,26 @@ extern "C" {
 /*                                                        */
 /**********************************************************/
 
+#define UP_N_LINE(out, n) ({                    \
+    typeof(n) n_ = (n);                         \
+    fprintf(out, "\033[%dA", n_);               \
+})
 
-#define ALLOC(n, type)                  \
-    ((type *)(malloc(sizeof(type) * n)))
+#define EARSE_N_LINE(out, n) ({                 \
+    typeof(n) n_ = (n);                         \
+    while (n_--) {                              \
+        fprintf(out, "\033[1A");                \
+        fprintf(out, "%c[2K", 27);              \
+    }                                           \
+})
+
+#define CLR_OUT(out)                            \
+    fprintf(out, "\033[2J")
+
+#define ALLOC(n, type) ({                       \
+    typeof(n) n_ = (n);                         \
+    (type *)(malloc(sizeof(type) * n_));        \
+})
 
 #define FREE(n_, pp_) ({                \
     if (pp_ != NULL) {                  \
@@ -147,22 +169,43 @@ struct ROBOT {
 /* func of ROBOT                                                              */
 /******************************************************************************/
 
-extern  int create_bot      (Bot **);
+extern  int     create_bot      (Bot **);
 
-extern  int delete_bot      (Bot **);
+extern  int     delete_bot      (Bot **);
 
-extern  int bot_init        (Bot *, uint8_t, uint8_t,
-                                    uint8_t, uint8_t, Act *, Pos);
+extern  int     bot_init        (Bot *, uint8_t, uint8_t,
+                                        uint8_t, uint8_t, Act *, Pos);
 
-extern  int bot_ctrl        (Bot *);
+extern  int     bot_ctrl        (Bot *);
 
 /******************************************************************************/
 /* func of ACTION                                                             */
 /******************************************************************************/
 
-extern  int load_act        (Act *, uint8_t, char *, uint8_t *, const char **);
+extern  int     load_act        (Act *, uint8_t, char *,
+                                        uint8_t *, const char **);
 
-extern  int unload_act      (Act *, uint8_t);
+extern  int     unload_act      (Act *, uint8_t);
+
+/******************************************************************************/
+/* func of STEP                                                               */
+/******************************************************************************/
+
+extern  int     print_step      (FILE *, Pos, char **, uint8_t);
+
+/******************************************************************************/
+/* func of thread                                                             */
+/******************************************************************************/
+
+extern  void   *main_thread    (void *);
+
+extern  void   *sub_thread     (void *);
+
+/******************************************************************************/
+/* func of listening keyboard                                                 */
+/******************************************************************************/
+
+extern  int     kbhit           (void);
 
 #ifdef __cplusplus
 }

@@ -1,12 +1,12 @@
 ./bin/run: ./obj/main.o ./obj/robot.o
-	gcc ./obj/main.o ./obj/robot.o -o ./bin/run -lm
+	gcc ./obj/main.o ./obj/robot.o -o ./bin/run -lm -lpthread
 	cp ./bin/run run
 
 ./obj/main.o: ./src/main.c
-	gcc -c ./src/main.c -o ./obj/main.o -g
+	gcc -c ./src/main.c -o ./obj/main.o -lpthread -g
 
 ./obj/robot.o: ./src/robot.c
-	gcc -c ./src/robot.c -o ./obj/robot.o -g
+	gcc -c ./src/robot.c -o ./obj/robot.o -lpthread -g
 
 clear: 
 	rm ./obj/*.o
