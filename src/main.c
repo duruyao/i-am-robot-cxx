@@ -7,13 +7,9 @@
  * @update  [id] [yy-mm-dd] [author] [description] 
  */
 
-#include <time.h>
-#include <math.h>
 #include <stdio.h>
-#include <float.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include <string.h>
 #include <inttypes.h>
 
 #include "robot.h"
@@ -34,7 +30,7 @@ int main(int argc, char **argv) {
     folder[1] = "./act/walk_left/";
     folder[2] = "./act/walk_right/";
     
-    ret = act_load(act, ACT_NB, cmd, step_nb, folder);
+    ret = load_act(act, ACT_NB, cmd, step_nb, folder);
     if (ret < 0)
         return -1;
     
@@ -43,7 +39,7 @@ int main(int argc, char **argv) {
     bot->ctrl(bot);
     delete_bot(&bot);
 
-    act_unload(act, ACT_NB);
+    unload_act(act, ACT_NB);
     return 0;
 }
 

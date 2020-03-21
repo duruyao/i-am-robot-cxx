@@ -7,26 +7,17 @@
  * @update  [id] [yy-mm-dd] [author] [description] 
  */
 
-#include <time.h>
-#include <math.h>
-#include <stdio.h>
-#include <float.h>
-#include <stdlib.h>
-#include <stdint.h>
-#include <string.h>
-#include <inttypes.h>
-
 #include "robot.h"
 
 #define HEIGHT  16
 #define WIDTH   27
 
 
-/******************************************************************************/
-/*                                                                            */
-/* func defination                                                            */
-/*                                                                            */
-/******************************************************************************/
+/**********************************************************/
+/*                                                        */
+/* func defination                                        */
+/*                                                        */
+/**********************************************************/
 
 
 /******************************************************************************/
@@ -81,7 +72,7 @@ int bot_ctrl(Bot *bot) {
 /* func of ACTION                                                             */
 /******************************************************************************/
 
-int act_load(Act *act, uint8_t act_nb,
+int load_act(Act *act, uint8_t act_nb,
              char *cmd, uint8_t *step_nb, const char **folder) {
     if (act == NULL)
         return -1;
@@ -119,7 +110,7 @@ int act_load(Act *act, uint8_t act_nb,
                     return -1;
                 }
                 fgets(act[i].step[j].str[k], WIDTH + 1, fd);
-                fprintf(stdout, "%2d %s", k + 1, act[i].step[j].str[k]);
+                // fprintf(stdout, "%2d %s", k + 1, act[i].step[j].str[k]);
             }
             if (fd)
                 fclose(fd);
@@ -129,7 +120,7 @@ int act_load(Act *act, uint8_t act_nb,
     return 0;
 }
 
-int act_unload(Act *act, uint8_t act_nb) {
+int unload_act(Act *act, uint8_t act_nb) {
     if (act == NULL)
         return 0;
     while (act_nb--) {
