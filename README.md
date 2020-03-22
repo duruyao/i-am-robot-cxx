@@ -51,6 +51,8 @@ Execute the file named 'run' to start a control system, and press `Esc` to quit.
 ```shell
 $ ./run
 ```
-The effect is probably like this.
+Press **`W`** / **`A`** / **`S`** / **`D`** to control robot.
+
+The effect is like **[the following GIF image](https://github.com/graycat0918/i-am-robot/blob/master/img/ctrl-sys.gif)** (Make sure your network is OK and **wait the image** for a moment).
 
 ![ctrl-sys.gif](./img/ctrl-sys.gif)
