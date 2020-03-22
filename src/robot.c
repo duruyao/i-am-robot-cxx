@@ -9,15 +9,13 @@
 
 #include "robot.h"
 
-// #define bot->height  16
-#define WIDTH   27
-
-
-struct winsize w;
 int jump = 0;
+struct winsize w;
+
 sem_t mutex_1;
 sem_t mutex_2;
 sem_t mutex_3;
+
 pthread_t main_tid;
 pthread_t sub_tid;
 
@@ -33,6 +31,17 @@ pthread_t sub_tid;
 /******************************************************************************/
 
 /*
+ * load resource of STEP of ACTION.
+ * 
+ * @param   act     is an 1-D array of ACTION.
+ * @param   act_nb  is number of ACTION in array.
+ * @param   width   is width of STEP.
+ * @param   height  is height of STEP.
+ * @param   cmd     is an 1-D array store control key of STEP.
+ * @param   step_nb is an 1-D array store number of STEP.
+ * @param   folder  is an 1-D array store position of STEP folder of ACTION.
+ *
+ * @return  0 on success, otherwise -1;
  *
  */
 
@@ -86,6 +95,12 @@ int load_act(Act *act, uint8_t act_nb,
 }
 
 /*
+ * release resource of ACTION.
+ *
+ * @param   act     is 1-D array of ACTION.
+ * @param   act_nb  is number of ACTION in array.
+ *
+ * @return  0 on success, otherwise -1;
  *
  */
 
@@ -109,6 +124,14 @@ int unload_act(Act *act, uint8_t act_nb) {
 /******************************************************************************/
 
 /*
+ * print STEP to standard output.
+ *
+ * @param   out     is a pointer to FILE as standrad output.
+ * @param   pos     is the first character position.
+ * @param   str     is a 2-D array of character.
+ * @param   hgt     is height of STEP.
+ *
+ * @return  0 on success, otherwise -1;
  *
  */
 
@@ -131,6 +154,11 @@ int print_step(FILE *out, Pos pos, char **str, uint8_t hgt) {
 /******************************************************************************/
 
 /*
+ * create a ROBOT.
+ *
+ * @param   bot_p   is a pointer to pointer to ROBOT.
+ *
+ * @return  0 on success, otherwise -1;
  *
  */
 
@@ -146,6 +174,11 @@ int create_bot(Bot **bot_p) {
 }
 
 /*
+ * delete a ROBOT.
+ *
+ * @param   bot_p   is a pointer to pointer to ROBOT.
+ *
+ * @return  0 on success, otherwise -1;
  *
  */
 
@@ -164,6 +197,17 @@ int delete_bot(Bot **bot_p) {
 }
 
 /*
+ * initialize a ROBOT.
+ *
+ * @param   bot     is a pointer to ROBOT.
+ * @param   id      is ID of ROBOT.
+ * @param   wdt     is width of ROBOT.
+ * @param   hgt     is height of ROBOT.
+ * @param   act_nb  is number of ACTION.
+ * @param   act     is an 1-D array of ACTION.
+ * @param   pos     is initial position. 
+ *
+ * @return  0 on success, otherwise -1;
  *
  */
 
@@ -183,6 +227,11 @@ int bot_init(Bot *bot, uint8_t id, uint8_t wdt,
 }
 
 /*
+ * control ROBOT.
+ *
+ * @param   bot_p   is a pointer to pointer to ROBOT.
+ *
+ * @return  0 on success, otherwise -1;
  *
  */
 
@@ -212,11 +261,11 @@ int bot_ctrl(Bot *bot) {
     sem_init(&mutex_2, 0, 0);
     sem_init(&mutex_3, 0, 1);
     pthread_create(&main_tid, NULL, &main_thread, (void *)(bot));
-    // usleep(50);
     pthread_create(&sub_tid,  NULL, &sub_thread,  (void *)(bot));
 
     pthread_join(main_tid, NULL);
     pthread_join(sub_tid,  NULL);
+
     sem_destroy(&mutex_1);
     sem_destroy(&mutex_2);
     sem_destroy(&mutex_3);
@@ -232,6 +281,11 @@ int bot_ctrl(Bot *bot) {
 /******************************************************************************/
 
 /*
+ * main thread of controling ROBOT.
+ *
+ * @param   vargp   is a pointer to ROBOT.
+ *
+ * @return  0 on success, otherwise -1;
  *
  */
 
@@ -343,6 +397,15 @@ void * main_thread(void *vargp) {
     pthread_exit(NULL);
 }
 
+/*
+ * extra thread of controling ROBOT.
+ *
+ * @param   vargp   is a pointer to ROBOT.
+ *
+ * @return  0 on success, otherwise -1;
+ *
+ */
+
 void * sub_thread(void *vargp) {
     char c;
     Bot *bot = (Bot *)vargp;
@@ -369,6 +432,9 @@ void * sub_thread(void *vargp) {
 /******************************************************************************/
 
 /*
+ * unblock listening event of keyboard.
+ *
+ * @return  1 on pressing any key, otherwise 0;
  *
  */
 
