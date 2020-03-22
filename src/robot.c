@@ -9,7 +9,7 @@
 
 #include "robot.h"
 
-#define HEIGHT  16
+// #define bot->height  16
 #define WIDTH   27
 
 
@@ -35,6 +35,7 @@ pthread_t sub_tid;
  */
 
 int load_act(Act *act, uint8_t act_nb,
+             uint8_t width, uint8_t height,
              char *cmd, uint8_t *step_nb, const char **folder) {
     if (act == NULL)
         return -1;
@@ -60,18 +61,18 @@ int load_act(Act *act, uint8_t act_nb,
                 fprintf(stderr, "Cannot open %s\n", filename);
                 return -1;
             }
-            if ((act[i].step[j].str = ALLOC(HEIGHT, char*)) == NULL) {
+            if ((act[i].step[j].str = ALLOC(height, char*)) == NULL) {
                 fprintf(stderr, "Allocate memory error\n");
                 return -1;
             }
-            act[i].step[j].s_nb = HEIGHT;
+            act[i].step[j].s_nb = height;
 
-            for (int k = 0; k < HEIGHT; k++) {
-                if ((act[i].step[j].str[k] = ALLOC(WIDTH + 1, char)) == NULL) {
+            for (int k = 0; k < height; k++) {
+                if ((act[i].step[j].str[k] = ALLOC(width + 1, char)) == NULL) {
                     fprintf(stderr, "Cannot open %s\n", filename);
                     return -1;
                 }
-                fgets(act[i].step[j].str[k], WIDTH + 1, fd);
+                fgets(act[i].step[j].str[k], width + 1, fd);
                 // fprintf(stdout, "%2d %s", k + 1, act[i].step[j].str[k]);
             }
             if (fd)
@@ -200,17 +201,20 @@ int bot_ctrl(Bot *bot) {
 
     /* set the new settings immediately */
     tcsetattr(STDIN_FILENO, TCSANOW, &new_tio);
-
-    print_step(stdout, bot->pos, bot->action[0].step[0].str, HEIGHT);
+    
+    /* default action is 'stand' */
+    print_step(stdout, bot->pos, bot->action[0].step[0].str, bot->height);
     
     sem_init(&mutex_1, 0, 1);
+    sem_init(&mutex_2, 0, 0);
     pthread_create(&main_tid, NULL, &main_thread, (void *)(bot));
-    usleep(500);
+    // usleep(50);
     pthread_create(&sub_tid,  NULL, &sub_thread,  NULL);
 
     pthread_join(main_tid, NULL);
     pthread_join(sub_tid,  NULL);
     sem_destroy(&mutex_1);
+    sem_destroy(&mutex_2);
 
     /* restore the former settings */
     tcsetattr(STDIN_FILENO, TCSANOW, &old_tio);
@@ -229,14 +233,33 @@ int bot_ctrl(Bot *bot) {
 void *main_thread(void *vargp) {
     Bot *bot = (Bot *)vargp;
     char c;
+    int cnt = 0;
     do {
-        sem_wait(&mutex_1);
+        sem_wait(&mutex_1); /* protect command buffer */
+        if (cnt == 0) {     /* make sure that main_thread is the first */
+            sem_post(&mutex_2);
+            cnt++;
+        }
         c = getchar();
         sem_post(&mutex_1);
         switch (c) {
             case 'w':
                 // EARSE_N_LINE(stdout, 1);
                 // fprintf(stdout, "up\n");
+                EARSE_N_LINE(stdout, bot->height + bot->pos.y);
+                if (bot->pos.y >= 4) {
+                    bot->pos.y -= 4;
+                    print_step(stdout, bot->pos,
+                               bot->action[0].step[0].str, bot->height);
+                    usleep(250000);
+                    EARSE_N_LINE(stdout, bot->height + bot->pos.y);
+                    bot->pos.y += 4;
+                    print_step(stdout, bot->pos,
+                               bot->action[0].step[0].str, bot->height);
+                }
+                else
+                    print_step(stdout, bot->pos,
+                               bot->action[0].step[0].str, bot->height);
                 break;
             case 'a':
                 for (int i = 0; i < bot->action[1].st_nb; i++) {
@@ -244,9 +267,9 @@ void *main_thread(void *vargp) {
                         bot->pos.x -= 2;
                     else if (i == 4 && bot->pos.x >= 0 + 2)
                         bot->pos.x -= 2;
-                    EARSE_N_LINE(stdout, HEIGHT + bot->pos.y);
+                    EARSE_N_LINE(stdout, bot->height + bot->pos.y);
                     print_step(stdout, bot->pos,
-                               bot->action[1].step[i].str, HEIGHT);
+                               bot->action[1].step[i].str, bot->height);
                     if (i != bot->action[1].st_nb - 1)
                         usleep(75000);
                 }
@@ -262,9 +285,9 @@ void *main_thread(void *vargp) {
                     else if (i == 4 && bot->pos.x < w.ws_col -
                                                     bot->width + 1 - 2)
                         bot->pos.x += 2;
-                    EARSE_N_LINE(stdout, HEIGHT + bot->pos.y);
+                    EARSE_N_LINE(stdout, bot->height + bot->pos.y);
                     print_step(stdout, bot->pos,
-                               bot->action[2].step[i].str, HEIGHT);
+                               bot->action[2].step[i].str, bot->height);
                     if (i != bot->action[1].st_nb - 1)
                         usleep(75000);
                 }
@@ -279,12 +302,13 @@ void *main_thread(void *vargp) {
 }
 
 void *sub_thread(void *vargp) {
+    sem_wait(&mutex_2);     /* make sure that main_thread is first */
     while (1) {
-        sem_wait(&mutex_1);
+        sem_wait(&mutex_1); /* protect command buffer */
         if (kbhit())
             getchar();
         sem_post(&mutex_1);
-        // usleep(500);
+        usleep(5000);
 
     }
     pthread_exit(NULL);

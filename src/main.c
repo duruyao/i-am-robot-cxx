@@ -14,7 +14,9 @@
 
 #include "robot.h"
 
-#define ACT_NB      3
+#define ACT_NB   3
+#define WIDTH   27
+#define HEIGHT  16
 
 Act         act[ACT_NB];
 char        cmd[ACT_NB]     = {'\0', 'a', 'd'};
@@ -30,12 +32,12 @@ int main(int argc, char **argv) {
     folder[1] = "./act/walk_left/";
     folder[2] = "./act/walk_right/";
     
-    ret = load_act(act, ACT_NB, cmd, step_nb, folder);
+    ret = load_act(act, ACT_NB, WIDTH, HEIGHT, cmd, step_nb, folder);
     if (ret < 0)
         return -1;
     
     create_bot(&bot);
-    bot->init(bot, 1, 26, 16, 3, act, pos);
+    bot->init(bot, 1, WIDTH, HEIGHT, 3, act, pos);
     bot->ctrl(bot);
     delete_bot(&bot);
 

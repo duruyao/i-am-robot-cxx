@@ -182,8 +182,8 @@ extern  int     bot_ctrl        (Bot *);
 /* func of ACTION                                                             */
 /******************************************************************************/
 
-extern  int     load_act        (Act *, uint8_t, char *,
-                                        uint8_t *, const char **);
+extern  int     load_act        (Act *, uint8_t, uint8_t, uint8_t,
+                                        char *, uint8_t *, const char **);
 
 extern  int     unload_act      (Act *, uint8_t);
 
