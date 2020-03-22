@@ -14,8 +14,10 @@
 
 
 struct winsize w;
+int jump = 0;
 sem_t mutex_1;
 sem_t mutex_2;
+sem_t mutex_3;
 pthread_t main_tid;
 pthread_t sub_tid;
 
@@ -169,12 +171,13 @@ int bot_init(Bot *bot, uint8_t id, uint8_t wdt,
              uint8_t hgt, uint8_t act_nb, Act *act, Pos pos) {
     if (bot == NULL)
         return -1;
-    bot->id     = id;
-    bot->width  = wdt;
-    bot->height = hgt;
-    bot->act_nb = act_nb;
-    bot->action = act;
-    bot->pos    = pos;
+    bot->id       = id;
+    bot->width    = wdt;
+    bot->height   = hgt;
+    bot->act_nb   = act_nb;
+    bot->action   = act;
+    bot->pos      = pos;
+    bot->init_pos = pos;
 
     return 0;
 }
@@ -207,14 +210,16 @@ int bot_ctrl(Bot *bot) {
     
     sem_init(&mutex_1, 0, 1);
     sem_init(&mutex_2, 0, 0);
+    sem_init(&mutex_3, 0, 1);
     pthread_create(&main_tid, NULL, &main_thread, (void *)(bot));
     // usleep(50);
-    pthread_create(&sub_tid,  NULL, &sub_thread,  NULL);
+    pthread_create(&sub_tid,  NULL, &sub_thread,  (void *)(bot));
 
     pthread_join(main_tid, NULL);
     pthread_join(sub_tid,  NULL);
     sem_destroy(&mutex_1);
     sem_destroy(&mutex_2);
+    sem_destroy(&mutex_3);
 
     /* restore the former settings */
     tcsetattr(STDIN_FILENO, TCSANOW, &old_tio);
@@ -230,66 +235,103 @@ int bot_ctrl(Bot *bot) {
  *
  */
 
-void *main_thread(void *vargp) {
-    Bot *bot = (Bot *)vargp;
+void * main_thread(void *vargp) {
     char c;
     int cnt = 0;
+    Bot *bot = (Bot *)vargp;
     do {
-        sem_wait(&mutex_1); /* protect command buffer */
-        if (cnt == 0) {     /* make sure that main_thread is the first */
+        sem_wait(&mutex_1); /* mutex_1: */
+        if (cnt == 0) {     /* mutex_2: */
             sem_post(&mutex_2);
             cnt++;
         }
         c = getchar();
-        sem_post(&mutex_1);
+        sem_post(&mutex_1); /* mutex_1 */
         switch (c) {
             case 'w':
-                // EARSE_N_LINE(stdout, 1);
-                // fprintf(stdout, "up\n");
+                sem_wait(&mutex_3); /* mutex_3 */
+                bot->pos.y = bot->init_pos.y;
                 EARSE_N_LINE(stdout, bot->height + bot->pos.y);
-                if (bot->pos.y >= 4) {
-                    bot->pos.y -= 4;
-                    print_step(stdout, bot->pos,
-                               bot->action[0].step[0].str, bot->height);
-                    usleep(250000);
-                    EARSE_N_LINE(stdout, bot->height + bot->pos.y);
-                    bot->pos.y += 4;
-                    print_step(stdout, bot->pos,
-                               bot->action[0].step[0].str, bot->height);
-                }
-                else
-                    print_step(stdout, bot->pos,
-                               bot->action[0].step[0].str, bot->height);
+                bot->pos.y -= 4;
+                print_step(stdout, bot->pos,
+                           bot->action[0].step[0].str, bot->height);
+                usleep(250000);
+                EARSE_N_LINE(stdout, bot->height + bot->pos.y);
+                bot->pos.y = bot->init_pos.y;
+                print_step(stdout, bot->pos,
+                           bot->action[0].step[0].str, bot->height);
+                sem_post(&mutex_3); /* mutex_3 */
                 break;
             case 'a':
                 for (int i = 0; i < bot->action[1].st_nb; i++) {
-                    if (i == 2 && bot->pos.x >= 0 + 2)
-                        bot->pos.x -= 2;
-                    else if (i == 4 && bot->pos.x >= 0 + 2)
-                        bot->pos.x -= 2;
+                    sem_wait(&mutex_3); /* mutex_3 */
                     EARSE_N_LINE(stdout, bot->height + bot->pos.y);
+                    if (i == 0)
+                        bot->pos.y = bot->init_pos.y;
+                    else if (i == 1) {
+                        if (jump) bot->pos.y = bot->init_pos.y - 2;
+                        bot->pos.x -= (bot->pos.x >= 0 + 1);
+                    }
+                    else if (i == 2) {
+                        if (jump) bot->pos.y = bot->init_pos.y - 4;
+                        bot->pos.x -= (bot->pos.x >= 0 + 1);
+                    }
+                    else if (i == 3) {
+                        if (jump) bot->pos.y = bot->init_pos.y - 4;
+                        bot->pos.x -= (bot->pos.x >= 0 + 1);
+                    }
+                    else if (i == 4) {
+                        if (jump) bot->pos.y = bot->init_pos.y - 2;
+                        bot->pos.x -= (bot->pos.x >= 0 + 1);
+                    }
+                    else if (i == 5) {
+                        bot->pos.y = bot->init_pos.y;
+                        jump = 0;
+                    }
                     print_step(stdout, bot->pos,
                                bot->action[1].step[i].str, bot->height);
+                    sem_post(&mutex_3); /* mutex_3 */
                     if (i != bot->action[1].st_nb - 1)
-                        usleep(75000);
+                        usleep(150000);
                 }
                 break;
             case 's':
-                // EARSE_N_LINE(stdout, 1);
-                // fprintf(stdout, "down\n");
                 break;
             case 'd':
-                for (int i = 0; i < bot->action[1].st_nb; i++) {
-                    if (i == 2 && bot->pos.x < w.ws_col - bot->width + 1 - 2)
-                        bot->pos.x += 2;
-                    else if (i == 4 && bot->pos.x < w.ws_col -
-                                                    bot->width + 1 - 2)
-                        bot->pos.x += 2;
+                for (int i = 0; i < bot->action[2].st_nb; i++) {
+                    sem_wait(&mutex_3); /* mutex_3 */
                     EARSE_N_LINE(stdout, bot->height + bot->pos.y);
+                    if (i == 0)
+                        bot->pos.y = bot->init_pos.y;
+                    else if (i == 1) {
+                        if (jump) bot->pos.y = bot->init_pos.y - 2;
+                        bot->pos.x += (bot->pos.x < 
+                                       w.ws_col - bot->width + 1 - 2);
+                    }
+                    else if (i == 2) {
+                        if (jump) bot->pos.y = bot->init_pos.y - 4;
+                        bot->pos.x += (bot->pos.x < 
+                                       w.ws_col - bot->width + 1 - 2);
+                    }
+                    else if (i == 3) {
+                        if (jump) bot->pos.y = bot->init_pos.y - 4;
+                        bot->pos.x += (bot->pos.x < 
+                                       w.ws_col - bot->width + 1 - 2);
+                    }
+                    else if (i == 4) {
+                        if (jump) bot->pos.y = bot->init_pos.y - 2;
+                        bot->pos.x += (bot->pos.x < 
+                                       w.ws_col - bot->width + 1 - 2);
+                    }
+                    else if (i == 5) {
+                        bot->pos.y = bot->init_pos.y;
+                        jump = 0;
+                    }
                     print_step(stdout, bot->pos,
                                bot->action[2].step[i].str, bot->height);
-                    if (i != bot->action[1].st_nb - 1)
-                        usleep(75000);
+                    sem_post(&mutex_3); /* mutex_3 */
+                    if (i != bot->action[2].st_nb - 1)
+                        usleep(150000);
                 }
                 break;
             default:
@@ -301,13 +343,21 @@ void *main_thread(void *vargp) {
     pthread_exit(NULL);
 }
 
-void *sub_thread(void *vargp) {
-    sem_wait(&mutex_2);     /* make sure that main_thread is first */
+void * sub_thread(void *vargp) {
+    char c;
+    Bot *bot = (Bot *)vargp;
+    sem_wait(&mutex_2);     /* mutex_2 */
     while (1) {
-        sem_wait(&mutex_1); /* protect command buffer */
-        if (kbhit())
-            getchar();
-        sem_post(&mutex_1);
+        sem_wait(&mutex_1); /* mutex_1 */
+        if (kbhit()) {
+            c = getchar();
+            if (c == 'w') {
+                sem_wait(&mutex_3); /* mutex_3 */
+                jump = 1;
+                sem_post(&mutex_3); /* mutex_3 */
+            }
+        }
+        sem_post(&mutex_1); /* mutex_1 */
         usleep(5000);
 
     }

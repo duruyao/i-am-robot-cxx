@@ -151,6 +151,7 @@ struct ROBOT {
     uint8_t height;
     uint8_t act_nb;
     Act *action;
+    Pos  init_pos;
     Pos  pos;
 
     int (*init)(Bot *, uint8_t, uint8_t, uint8_t, uint8_t, Act *, Pos);
@@ -197,9 +198,9 @@ extern  int     print_step      (FILE *, Pos, char **, uint8_t);
 /* func of thread                                                             */
 /******************************************************************************/
 
-extern  void   *main_thread    (void *);
+extern  void *  main_thread     (void *);
 
-extern  void   *sub_thread     (void *);
+extern  void *  sub_thread      (void *);
 
 /******************************************************************************/
 /* func of listening keyboard                                                 */
