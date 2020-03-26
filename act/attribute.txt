@@ -1,0 +1,7 @@
+width: 27
+height: 16
+gap_x: 4
+gap_y: 4
+act_nb: 3
+x: 8
+y: 4

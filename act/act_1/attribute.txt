@@ -1,0 +1,3 @@
+name: walk_left
+key: 97
+st_nb: 6
