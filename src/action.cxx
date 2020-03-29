@@ -9,54 +9,121 @@
 
 #include "action.h"
 
-Action::Action() : step_dir(NULL) {
-/// printf("Action::Action()\n"); ///
-    memset(name, '\0', 127);
+Action::Action() :
+    dir("\0"), name("\0"), key(0), st_nb(0), step(NULL) {
+    memset(dir,  '\0', 255);
+    memset(name, '\0', 255);
+}
+
+Action::Action(const char *dir) :
+    dir("\0"), name("\0"), key(0), st_nb(0), step(NULL) {
+    int ret;
+
+    memset(this->dir,  '\0', 255);
+    memset(name, '\0', 255);
+    memcpy(this->dir,  dir,  255);
+    ret = load();
+    if (ret < 0) exit(1);
+}
+
+Action::Action(const Action &that) {
+    char filename[255];
+    char file[255];
+    memset(filename, '\0', 255);
+    memset(file, '\0', 255);
+     
+    memset(dir,  '\0', 255);
+    memset(name, '\0', 255);
+    memcpy(dir,  that.dir,  255);
+    memcpy(name, that.name, 255);
+    key   = that.key;
+    st_nb = that.st_nb;
+    step  = NULL;
+
+    step = new Step[st_nb];
+    if (step == NULL) {
+        fprintf(stderr, "Allocate memory error\n");
+        exit(1);
+    }
+    for (int i = 0; i < st_nb; i++) {
+        strcpy(filename, dir);
+        snprintf(file, 255, "step_%d.txt", i);
+        strcat(filename, file);
+        step[i] = Step(filename);
+    }
+}
+
+Action & Action::operator=(const Action &that) {
+    char filename[255];
+    char file[255];
+    memset(filename, '\0', 255);
+    memset(file, '\0', 255);
+     
+    if (this == &that) return *this;
+    if (step) delete[] step;
+
+    memset(dir,  '\0', 255);
+    memset(name, '\0', 255);
+    memcpy(dir,  that.dir,  255);
+    memcpy(name, that.name, 255);
+    key   = that.key;
+    st_nb = that.st_nb;
+    step  = NULL;
+
+    step = new Step[st_nb];
+    if (step == NULL) {
+        fprintf(stderr, "Allocate memory error\n");
+        exit(1);
+    }
+    for (int i = 0; i < st_nb; i++) {
+        strcpy(filename, dir);
+        snprintf(file, 255, "step_%d.txt", i);
+        strcat(filename, file);
+        step[i] = Step(filename);
+    }
+
+    return *this;
 }
 
 Action::~Action() {
-    delete[] this->step;
-/// printf("Action::~Action()\n"); ///
+    if (step) delete[] step;
 }
 
-uint8_t Action::get_st_nb() {
-    return this->st_nb;
-}
-
-int Action::load_step(char *dir, uint8_t row, uint8_t col) {
-    this->step_dir = dir;
-
-    char filename[127];
-    char file[127] = "attribute.txt";
-    memset(filename, '\0', 127);
-    strcpy(filename, step_dir);
-    strcat(filename, file);
-    
+int Action::load() {
     FILE *fd = NULL;
     char  tmp[63];
-    if ((fd = fopen(filename, "r")) == NULL) {
-        fprintf(stderr, "Cannot open %s\n", filename);
-        exit(1);
-    }
-    fscanf(fd, "%s%s", tmp, this->name);
-    fscanf(fd, "%s%" SCNu8 "", tmp, &(this->key));
-    fscanf(fd, "%s%" SCNu8 "", tmp, &(this->st_nb));
+    char  filename[255];
+    char  file[255] = "attribute.txt";
+    memset(filename, '\0', 255);
+    memcpy(filename, dir, 255);
+    strcat(filename, file);
     
-    this->step = new Step[st_nb];
-    strcpy(file, "step_0.txt");
-    for (int i = 0; i < st_nb; i++) {
-        strcpy(filename, step_dir);
-        file[5] = '0' + i;
-        strcat(filename, file);
-        step[i].load_str(filename, row, col);
+    fd = fopen(filename, "r");
+    if (fd == NULL) {
+        fprintf(stderr, "Cannot open %s\n", filename);
+        return -1;
     }
-
+    fscanf(fd, "%s%s", tmp, name);
+    fscanf(fd, "%s%" SCNu8 "", tmp, &key);
+    fscanf(fd, "%s%" SCNu8 "", tmp, &st_nb);
     fclose(fd);
+    
+    step = new Step[st_nb];
+    if (step == NULL) {
+        fprintf(stderr, "Allocate memory error\n");
+        return -1;
+    }
+    for (int i = 0; i < st_nb; i++) {
+        strcpy(filename, dir);
+        snprintf(file, 255, "step_%d.txt", i);
+        strcat(filename, file);
+        step[i] = Step(filename);
+    }
+    return 0;
 }
 
-int Action::print_step(FILE *out, int st_idx, Position pos, uint8_t height) {
-    if (this->step == NULL)
-        return -1;
-    return (this->step[st_idx].print_str(out, pos, height));
+int Action::print_step(FILE *out, int st_idx, Position pos) const {
+    if (step == NULL) return -1;
+    return (step[st_idx].print(out, pos));
 }
 

@@ -1,6 +1,6 @@
 /**
  * @file window.h
- * defination of 'Window' class. 
+ * declaration of 'Window' class. 
  *
  * @author  duruyao
  * @version 1.0  20-03-25
@@ -25,7 +25,9 @@ public:
     uint8_t col;
 
     Window();
-    ~Window();
+    Window(const Window &);
+    Window & operator=(const Window &);
+    virtual ~Window();
 };
 
 #endif /* !__WINDOWH__ */

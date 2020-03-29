@@ -9,7 +9,7 @@
 
 #include "robot.h"
 
-uint8_t Robot::id = 0;
+uint8_t Robot::cnt = 0;
 
 static sem_t mutex_1;
 static sem_t mutex_2;
@@ -18,48 +18,137 @@ static sem_t mutex_3;
 static pthread_t super_tid;
 static pthread_t sub_tid;
 
-Robot::Robot(Window *win, char *dir) : win(win), act_dir(dir), jump(0) {
-/// printf("Robot::Robot()\n"); ///
-    ++this->id;
-    
-    char filename[127];
-    char file[127] = "attribute.txt";
-    memset(filename, '\0', 127);
-    strcpy(filename, act_dir);
-    strcat(filename, file);
-    
-    FILE *fd = NULL;
-    char  tmp[63];
-    if ((fd = fopen(filename, "r")) == NULL) {
-        fprintf(stderr, "Cannot open %s\n", filename);
+Robot::Robot() :
+    jump(0), init_x(0), init_y(0), dir("\0"), width(0), height(0),
+    gap_x(0), gap_y(0), act_nb(0), pos({0, 0}), act(NULL), win(NULL) {
+    ++cnt;
+}
+
+Robot::Robot(Window *win, const char *dir) :
+    jump(0), init_x(0), init_y(0), dir("\0"), width(0), height(0),
+    gap_x(0), gap_y(0), act_nb(0), pos({0, 0}), act(NULL), win(win) {
+    int ret;
+
+    ++cnt;
+    memset(this->dir, '\0', 255);
+    memcpy(this->dir,  dir, 255);
+    ret = load();
+    if (ret < 0) exit(1);
+}
+
+Robot::Robot(const Robot &that) {
+    char  filename[255];
+    char  file[255];
+    memset(filename, '\0', 255);
+    memset(file, '\0', 255);
+
+    ++cnt;
+    jump   = that.jump;
+    init_x = that.init_x;
+    init_y = that.init_y;
+    memset(dir, '\0', 255);
+    memcpy(dir, that.dir, 255);
+    width  = that.width;
+    height = that.height;
+    gap_x  = that.gap_x;
+    gap_y  = that.gap_y;
+    act_nb = that.act_nb;
+    pos    = that.pos;
+    win    = that.win;
+
+    act = new Action[act_nb];
+    if (act = NULL) {
+        fprintf(stderr, "Allocate memory error\n");
         exit(1);
     }
-    fscanf(fd, "%s%" SCNu8 "", tmp, &(this->width));
-    fscanf(fd, "%s%" SCNu8 "", tmp, &(this->height));
-    fscanf(fd, "%s%" SCNu8 "", tmp, &(this->gap_x));
-    fscanf(fd, "%s%" SCNu8 "", tmp, &(this->gap_y));
-    fscanf(fd, "%s%" SCNu8 "", tmp, &(this->act_nb));
-    fscanf(fd, "%s%d", tmp, &(this->pos.x));
-    fscanf(fd, "%s%d", tmp, &(this->pos.y));
-    this->init_x = this->pos.x;
-    this->init_y = this->pos.y;
-
-    this->act = new Action[act_nb];
-    strcpy(file, "act_0/");
     for (int i = 0; i < act_nb; i++) {
-        strcpy(filename, act_dir);
-        file[4] = '0' + i;
+        strcpy(filename, dir);
+        snprintf(file, 255, "act_%d/", i);
         strcat(filename, file);
-        act[i].load_step(filename, height, width);
+        act[i] = Action(filename);
+    }
+}
+
+Robot & Robot::operator=(const Robot &that) {
+    char  filename[255];
+    char  file[255];
+    memset(filename, '\0', 255);
+    memset(file, '\0', 255);
+
+    if (this == &that) return *this;
+    if (act) delete[] act;
+
+    jump   = that.jump;
+    init_x = that.init_x;
+    init_y = that.init_y;
+    memset(dir, '\0', 255);
+    memcpy(dir, that.dir, 255);
+    width  = that.width;
+    height = that.height;
+    gap_x  = that.gap_x;
+    gap_y  = that.gap_y;
+    act_nb = that.act_nb;
+    pos    = that.pos;
+    win    = that.win;
+
+    act = new Action[act_nb];
+    if (act == NULL) {
+        fprintf(stderr, "Allocate memory error\n");
+        exit(1);
+    }
+    for (int i = 0; i < act_nb; i++) {
+        strcpy(filename, dir);
+        snprintf(file, 255, "act_%d/", i);
+        strcat(filename, file);
+        act[i] = Action(filename);
     }
 
-    fclose(fd);
+    return *this;
 }
 
 Robot::~Robot() {
-    --this->id;
-    delete[] act;
-/// printf("Robot::~Robot()\n"); ///
+    --cnt;
+    if (act) delete[] act;
+}
+
+int Robot::load() {
+    FILE *fd = NULL;
+    char  tmp[63];
+    char  filename[255];
+    char  file[255] = "attribute.txt";
+    memset(filename, '\0', 255);
+    strcpy(filename, dir);
+    strcat(filename, file);
+    
+    fd = fopen(filename, "r");
+    if (fd == NULL) {
+        fprintf(stderr, "Cannot open %s\n", filename);
+        return -1;
+    }
+    fscanf(fd, "%s%" SCNu8 "", tmp, &width);
+    fscanf(fd, "%s%" SCNu8 "", tmp, &height);
+    fscanf(fd, "%s%" SCNu8 "", tmp, &gap_x);
+    fscanf(fd, "%s%" SCNu8 "", tmp, &gap_y);
+    fscanf(fd, "%s%" SCNu8 "", tmp, &act_nb);
+    fscanf(fd, "%s%d", tmp, &pos.x);
+    fscanf(fd, "%s%d", tmp, &pos.y);
+    fclose(fd);
+    init_x = pos.x;
+    init_y = pos.y;
+
+    act = new Action[act_nb];
+    if (act == NULL) {
+        fprintf(stderr, "Allocate memory error\n");
+        return -1;
+    }
+    for (int i = 0; i < act_nb; i++) {
+        strcpy(filename, dir);
+        snprintf(file, 255, "act_%d/", i);
+        strcat(filename, file);
+        act[i] = Action(filename);
+    }
+    
+    return 0;
 }
 
 int Robot::control() {
@@ -68,13 +157,10 @@ int Robot::control() {
     
     /* get the terminal settings for stdin */
     tcgetattr(STDIN_FILENO, &old_tio);
-
     /* we want to keep the old setting to restore them at the end */
     new_tio = old_tio;
-
-    /* disable canonical mode (buffered i/o) and local echo */
+    /* disable canonical mode (buffered io) and local echo */
     new_tio.c_lflag &= (~ICANON & ~ECHO);
-
     /* set the new settings immediately */
     tcsetattr(STDIN_FILENO, TCSANOW, &new_tio);
 
@@ -155,31 +241,28 @@ void * sub_thread(void *vargp) {
 }
 
 int Robot::stand(FILE *out, int idx) {
-    if (this->act == NULL)
-        return -1;
-    return (act[idx].print_step(stdout, 0, pos, height));
+    if (act == NULL) return -1;
+    return (act[idx].print_step(stdout, 0, pos));
 }
 
 int Robot::stand_jump(FILE *out, int idx) {
-    if (this->act == NULL)
-        return -1;
+    if (act == NULL) return -1;
     sem_wait(&mutex_3); /* mutex_3 */
     pos.y = init_y;
     EARSE_N_LINE(stdout, height + pos.y);
     pos.y -= gap_y;
-    act[idx].print_step(stdout, 0, pos, height);
+    act[idx].print_step(stdout, 0, pos);
     usleep(220000);
     EARSE_N_LINE(stdout, height + pos.y);
     pos.y = init_y;
-    act[idx].print_step(stdout, 0, pos, height);
+    act[idx].print_step(stdout, 0, pos);
     sem_post(&mutex_3); /* mutex_3 */
     
     return 0;
 }
 
 int Robot::walk_left(FILE *out, int idx) {
-    if (this->act == NULL)
-        return -1;
+    if (act == NULL) return -1;
     for (int i = 0; i < act[idx].get_st_nb(); i++) {
         sem_wait(&mutex_3); /* mutex_3 */
         EARSE_N_LINE(stdout, height + pos.y);
@@ -205,7 +288,7 @@ int Robot::walk_left(FILE *out, int idx) {
             pos.y = init_y;
             jump = 0;
         }
-        act[idx].print_step(stdout, i, pos, height);
+        act[idx].print_step(stdout, i, pos);
         sem_post(&mutex_3); /* mutex_3 */
         if (i != act[idx].get_st_nb() - 1)
             usleep(150000);
@@ -215,8 +298,7 @@ int Robot::walk_left(FILE *out, int idx) {
 }
 
 int Robot::walk_right(FILE *out, int idx) {
-    if (this->act == NULL)
-        return -1;
+    if (act == NULL) return -1;
     for (int i = 0; i < act[idx].get_st_nb(); i++) {
         sem_wait(&mutex_3); /* mutex_3 */
         EARSE_N_LINE(stdout, height + pos.y);
@@ -242,7 +324,7 @@ int Robot::walk_right(FILE *out, int idx) {
             pos.y = init_y;
             jump = 0;
         }
-        act[idx].print_step(stdout, i, pos, height);
+        act[idx].print_step(stdout, i, pos);
         sem_post(&mutex_3); /* mutex_3 */
         if (i != act[idx].get_st_nb() - 1)
             usleep(150000);

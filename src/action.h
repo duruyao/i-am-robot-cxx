@@ -21,23 +21,29 @@
 
 using namespace std;
 
-class Robot;
-
 class Action {
 private:
-    char   *step_dir;
-    char    name[127];
+    char    dir[255];
+    char    name[255];
     char    key;
     uint8_t st_nb;
     Step   *step;
 
 public:
     Action();
-    ~Action();
-    uint8_t get_st_nb();
-    int load_step(char *, uint8_t, uint8_t);
-    int print_step(FILE *, int, Position, uint8_t);
+    Action(const char *);
+    Action(const Action &);
+    Action & operator=(const Action &);
+    virtual ~Action();
+
+    inline uint8_t get_st_nb() const;
+    int load();
+    int print_step(FILE *, int, Position) const;
 };
+
+inline uint8_t Action::get_st_nb() const {
+    return st_nb;
+}
 
 #endif /* !__ACTIONH__ */
 

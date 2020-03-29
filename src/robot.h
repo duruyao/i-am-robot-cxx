@@ -31,12 +31,12 @@ using namespace std;
 
 class Robot {
 private:
-    static uint8_t id;
-    char  *act_dir;
+    static uint8_t cnt;
     
-    int jump;
-    int init_x;
-    int init_y;
+    int  jump;
+    int  init_x;
+    int  init_y;
+    char dir[255];
 
     uint8_t width;
     uint8_t height;
@@ -54,8 +54,13 @@ private:
     int walk_right(FILE *, int);
 
 public:
-    Robot(Window *, char *);
-    ~Robot();
+    Robot();
+    Robot(Window *, const char *);
+    Robot(const Robot &);
+    Robot & operator=(const Robot &);
+    virtual ~Robot();
+
+    int load();
     int control();
     friend void *super_thread(void *);
     friend void *sub_thread(void *);

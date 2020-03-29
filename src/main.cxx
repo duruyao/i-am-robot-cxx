@@ -1,9 +1,9 @@
 /**
  * @file [filename] 
- * [description of the content]
+ * demo of controlling Robot.
  *
  * @author  duruyao
- * @version 1.0  [yy/mm/dd]
+ * @version 1.0  20-03-30
  * @update  [id] [yy/mm/dd] [name] [description] 
  */
 
@@ -15,9 +15,9 @@
 using namespace std;
 
 int main(int argc, char **argv) {
-    char dir[127] = "act/";
+    // char dir[127] = "act/";
     Window win;
-    Robot bot(&win, dir);
+    Robot bot(&win, "act/");
     bot.control();
 
     return 0;

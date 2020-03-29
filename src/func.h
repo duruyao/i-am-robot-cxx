@@ -49,7 +49,9 @@ extern "C" {
     (type *)(malloc(sizeof(type) * n_));        \
 })
 
-#define FREE(n_, pp_) ({                        \
+#define FREE(n, pp) ({                          \
+    typeof(n)  n_  = (n);                       \
+    typeof(pp) pp_ = (pp);                      \
     if (pp_ != NULL) {                          \
         while (n_--) {                          \
             if (pp_[n_])                        \

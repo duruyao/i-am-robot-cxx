@@ -9,16 +9,27 @@
 
 #include "window.h"
 
-Window::Window() : row(0U), col(0U) {
-/// printf("Window::Window()\n"); ///
+Window::Window() : row(0), col(0) {
     struct winsize term;
-
     /* get size of current terminal */
     ioctl(STDOUT_FILENO, TIOCGWINSZ, &term);
-    this->col = term.ws_col;
+    row = term.ws_row;
+    col = term.ws_col;
+}
+
+Window::Window(const Window &that) {
+    row = that.row;
+    col = that.col;
+}
+
+Window & Window::operator=(const Window &that) {
+    if (this == &that) return *this;
+    row = that.row;
+    col = that.col;
+    return *this;
 }
 
 Window::~Window() {
-/// printf("Window::~Window()\n"); ///
+
 }
 

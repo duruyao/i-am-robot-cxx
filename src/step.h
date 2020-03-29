@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+#include <inttypes.h>
 
 #include "func.h"
 
@@ -21,15 +22,20 @@ using namespace std;
 
 class Step {
 private:
+    char    dir[255];
     char  **str;
     uint8_t row;
     uint8_t col;
 
 public:
     Step();
-    ~Step();
-    int load_str(char *, uint8_t, uint8_t);
-    int print_str(FILE *, Position, uint8_t);
+    Step(const char *);
+    Step(const Step &);
+    Step & operator=(const Step &);
+    virtual ~Step();
+
+    int load();
+    int print(FILE *, Position) const;
 };
 
 #endif /* !__STEPH__ */
