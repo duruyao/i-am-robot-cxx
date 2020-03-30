@@ -15,7 +15,6 @@
 using namespace std;
 
 int main(int argc, char **argv) {
-    // char dir[127] = "act/";
     Window win;
     Robot bot(&win, "act/");
     bot.control();
